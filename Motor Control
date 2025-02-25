@@ -1,0 +1,44 @@
+module motorcontrol
+  (input logic clk,
+  input logic reset,
+  input logic direction, 
+  input logic [20:0] count_in,
+  output logic pwm);
+
+  typedef enum logic [1:0] (high_state, low_state, reset_state) pwm_state;
+  pwm_state state, next_state;
+
+  always_ff @(posedge clk)
+    if(reset)
+      state <= reset_state;
+    else
+      state <= next_state;
+
+  always_comb
+    case(state)
+      reset_state:
+        begin 
+          pwm = 0;
+          next_state = high_state;
+        end
+      high_state:
+        begin
+          pwm = 1;
+          if ((count_in >= 21'd200000 && direction == 1)
+              || (count_in >= 21'd100000 &&  direction == 0))
+              next_state = low_state;
+          else
+            next_state = high_state;
+        end
+      low_state:
+        begin
+          pwm = 0;
+          next_state = low_state;
+        end
+      default:
+        begin
+          pwm = 0;
+          next_state = reset_state;
+        end
+      endcase
+endmodule
