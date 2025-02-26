@@ -1,0 +1,19 @@
+module inputbuffer (
+    input logic clk,
+    input logic [2:0] sensor_in, // 3-bit sensor input
+    output logic [2:0] sensor_out // 3-bit buffered output
+);
+
+    logic [2:0] buffer1; // First buffer stage
+
+    // First stage of synchronization (register)
+    always_ff @(posedge clk) begin
+        buffer1 <= sensor_in;
+    end
+
+    // Second stage of synchronization (register)
+    always_ff @(posedge clk) begin
+        sensor_out <= buffer1;
+    end
+
+endmodule
