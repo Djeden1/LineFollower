@@ -1,0 +1,71 @@
+module robot (
+    input logic clk,
+    input logic reset,
+
+    input logic sensor_l_in,
+    input logic sensor_m_in,
+    input logic sensor_r_in,
+
+    output logic motor_l_pwm,
+    output logic motor_r_pwm
+);
+
+    // Internal signal declarations
+    logic [2:0] sensor_values;   // Combined sensor signals
+    logic [2:0] buffered_sensors; // Buffered sensor values
+    logic [20:0] count;          // Timebase counter
+    logic motor_l_dir, motor_r_dir; // Motor direction signals
+    logic reset_timebase;        // Reset signal for the timebase
+    logic motor_l_pwm_signal, motor_r_pwm_signal; // PWM signals for motors
+
+    // Assign sensor inputs to a bus
+    assign sensor_values = {sensor_l_in, sensor_m_in, sensor_r_in};
+
+    // Instantiate input buffer
+    inputbuffer input_buf (
+        .clk(clk),
+        .sensor_in(sensor_values),
+        .sensor_out(buffered_sensors)
+    );
+
+    // Instantiate timebase
+    timebase timebase_inst (
+        .clk(clk),
+        .reset(reset | reset_timebase), // Reset triggered by controller or external reset
+        .count(count)
+    );
+
+    // Instantiate controller
+    controller controller_inst (
+        .clk(clk),
+        .reset(reset),
+        .sensors(buffered_sensors),
+        .count_in(count),
+        .motor_l_dir(motor_l_dir),
+        .motor_r_dir(motor_r_dir),
+        .reset_timebase(reset_timebase)
+    );
+
+    // Instantiate motor control (Left Motor)
+    motorcontrol motorcontrol_left (
+        .clk(clk),
+        .reset(reset),
+        .dir(motor_l_dir),
+        .count(count),
+        .pwm_out(motor_l_pwm_signal)
+    );
+
+    // Instantiate motor control (Right Motor)
+    motorcontrol motorcontrol_right (
+        .clk(clk),
+        .reset(reset),
+        .dir(motor_r_dir),
+        .count(count),
+        .pwm_out(motor_r_pwm_signal)
+    );
+
+    // Assign PWM outputs
+    assign motor_l_pwm = motor_l_pwm_signal;
+    assign motor_r_pwm = motor_r_pwm_signal;
+
+endmodule
