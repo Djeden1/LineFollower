@@ -1,0 +1,79 @@
+module controller (
+    input logic clk,
+    input logic reset,
+    input logic [2:0] sensors,    // 3-bit sensor input
+    input logic [20:0] count_in,  // Counter from timebase
+    output logic motor_l_dir,     // Left motor direction
+    output logic motor_r_dir,     // Right motor direction
+    output logic reset_timebase   // Reset signal for timebase
+);
+
+    typedef enum logic [2:0] {
+        DECIDE, 
+        FORWARD, 
+        GENTLE_LEFT, 
+        SHARP_LEFT, 
+        GENTLE_RIGHT, 
+        SHARP_RIGHT
+    } state_t;
+    
+    state_t state, next_state;
+
+    always_ff @(posedge clk) begin
+        if (reset)
+            state <= DECIDE;
+        else
+            state <= next_state;
+    end
+
+    always_comb begin
+        next_state = state;
+        reset_timebase = 0;
+        motor_l_dir = 0;
+        motor_r_dir = 0;
+
+        case (state)
+            DECIDE: begin
+                if (count_in == 0) begin
+                    case (sensors)
+                        3'b000: next_state = FORWARD;
+                        3'b001: next_state = GENTLE_LEFT;
+                        3'b010: next_state = FORWARD;
+                        3'b011: next_state = SHARP_LEFT;
+                        3'b100: next_state = GENTLE_RIGHT;
+                        3'b101: next_state = FORWARD;
+                        3'b110: next_state = SHARP_RIGHT;
+                        3'b111: next_state = FORWARD;
+                        default: next_state = FORWARD;
+                    endcase
+                    reset_timebase = 1;
+                end
+            end
+
+            FORWARD: begin
+                motor_l_dir = 1; motor_r_dir = 0;
+                if (count_in >= 2000000) next_state = DECIDE;
+            end
+
+            GENTLE_LEFT: begin
+                motor_l_dir = 0; motor_r_dir = 1;
+                if (count_in >= 2000000) next_state = DECIDE;
+            end
+
+            SHARP_LEFT: begin
+                motor_l_dir = 1; motor_r_dir = 1;
+                if (count_in >= 2000000) next_state = DECIDE;
+            end
+
+            GENTLE_RIGHT: begin
+                motor_l_dir = 1; motor_r_dir = 0;
+                if (count_in >= 2000000) next_state = DECIDE;
+            end
+
+            SHARP_RIGHT: begin
+                motor_l_dir = 1; motor_r_dir = 1;
+                if (count_in >= 2000000) next_state = DECIDE;
+            end
+        endcase
+    end
+endmodule
