@@ -1,0 +1,19 @@
+module timebase (
+    input logic clk,
+    input logic reset,
+    output logic [20:0] count // 21-bit counter
+);
+    logic [20:0] next_count; 
+
+    // Register to store the counter value
+    always_ff @(posedge clk) begin
+        if (reset) 
+            count <= 0;  // Reset counter
+        else 
+            count <= next_count;  // Update counter
+    end
+
+    // Adder to increment the counter
+    assign next_count = count + 1;
+
+endmodule
